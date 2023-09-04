@@ -1,0 +1,3 @@
+package tetris_types is
+    type tetromino_shape_type is array(3 downto 0, 3 downto 0) of std_logic;
+end package;

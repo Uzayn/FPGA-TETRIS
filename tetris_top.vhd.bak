@@ -1,0 +1,178 @@
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.STD_LOGIC_ARITH.ALL;
+use IEEE.STD_LOGIC_UNSIGNED.ALL;
+
+entity tetris_top is
+    Port (
+        -- Clock and reset
+        clk : in STD_LOGIC;
+        rst : in STD_LOGIC;
+        
+        -- User input
+        left : in STD_LOGIC;
+        right : in STD_LOGIC;
+        rotate : in STD_LOGIC;
+        drop : in STD_LOGIC;
+        
+        -- Game grid inputs
+        grid : in STD_LOGIC_VECTOR(9 downto 0)(9 downto 0);
+        tetromino_position_x : in STD_LOGIC_VECTOR(3 downto 0);
+        tetromino_position_y : in STD_LOGIC_VECTOR(3 downto 0);
+        tetromino_shape : in STD_LOGIC_VECTOR(3 downto 0)(3 downto 0);
+        
+        -- Display output
+        display_out : out STD_LOGIC_VECTOR(7 downto 0)(7 downto 0);
+        
+        -- Scoring output
+        score : out STD_LOGIC_VECTOR(15 downto 0);
+        
+        -- Game over signal
+        game_over : out STD_LOGIC
+    );
+end tetris_top;
+
+architecture Behavioral of tetris_top is
+    -- Component declarations for instantiated modules
+    component tetrominoes
+        Port (
+            clk : in STD_LOGIC;
+            rst : in STD_LOGIC;
+            rotate : in STD_LOGIC;
+            tetromino_shape : out STD_LOGIC_VECTOR(3 downto 0)(3 downto 0)
+        );
+    end component;
+    
+    component game_grid
+        Port (
+            clk : in STD_LOGIC;
+            rst : in STD_LOGIC;
+            tetromino_shape : in STD_LOGIC_VECTOR(3 downto 0)(3 downto 0);
+            tetromino_position_x : in STD_LOGIC_VECTOR(3 downto 0);
+            tetromino_position_y : in STD_LOGIC_VECTOR(3 downto 0);
+            game_over : out STD_LOGIC;
+            grid : out STD_LOGIC_VECTOR(9 downto 0)(9 downto 0)
+        );
+    end component;
+    
+    component game_logic
+        Port (
+            clk : in STD_LOGIC;
+            rst : in STD_LOGIC;
+            tetromino_shape : in STD_LOGIC_VECTOR(3 downto 0)(3 downto 0);
+            tetromino_position_x : in STD_LOGIC_VECTOR(3 downto 0);
+            tetromino_position_y : in STD_LOGIC_VECTOR(3 downto 0);
+            user_input : in STD_LOGIC_VECTOR(2 downto 0);
+            grid : in STD_LOGIC_VECTOR(9 downto 0)(9 downto 0);
+            score : out STD_LOGIC;
+            game_over : out STD_LOGIC
+        );
+    end component;
+    
+    component user_input
+        Port (
+            clk : in STD_LOGIC;
+            rst : in STD_LOGIC;
+            buttons : in STD_LOGIC_VECTOR(2 downto 0);
+            left : out STD_LOGIC;
+            right : out STD_LOGIC;
+            rotate : out STD_LOGIC;
+            drop : out STD_LOGIC
+        );
+    end component;
+    
+    component display
+        Port (
+            clk : in STD_LOGIC;
+            rst : in STD_LOGIC;
+            grid : in STD_LOGIC_VECTOR(9 downto 0)(9 downto 0);
+            tetromino_position_x : in STD_LOGIC_VECTOR(3 downto 0);
+            tetromino_position_y : in STD_LOGIC_VECTOR(3 downto 0);
+            tetromino_shape : in STD_LOGIC_VECTOR(3 downto 0)(3 downto 0);
+            display_out : out STD_LOGIC_VECTOR(7 downto 0)(7 downto 0)
+        );
+    end component;
+    
+    component scoring
+        Port (
+            clk : in STD_LOGIC;
+            rst : in STD_LOGIC;
+            lines_cleared : in STD_LOGIC_VECTOR(3 downto 0);
+            score : out STD_LOGIC
+        );
+    end component;
+    
+    -- Signals for interconnecting modules
+    signal tetromino_shape : STD_LOGIC_VECTOR(3 downto 0)(3 downto 0);
+    signal game_over_signal : STD_LOGIC;
+    signal game_score : STD_LOGIC_VECTOR(15 downto 0);
+    signal display_data : STD_LOGIC_VECTOR(7 downto 0)(7 downto 0);
+    signal user_input_signals : STD_LOGIC_VECTOR(2 downto 0);
+    
+begin
+    -- Instantiate and connect modules
+    tetrominoes_inst : tetrominoes
+        Port Map (
+            clk => clk,
+            rst => rst,
+            rotate => rotate,
+            tetromino_shape => tetromino_shape
+        );
+
+    game_grid_inst : game_grid
+        Port Map (
+            clk => clk,
+            rst => rst,
+            tetromino_shape => tetromino_shape,
+            tetromino_position_x => tetromino_position_x,
+            tetromino_position_y => tetromino_position_y,
+            game_over => game_over_signal,
+            grid => grid
+        );
+    
+    game_logic_inst : game_logic
+        Port Map (
+            clk => clk,
+            rst => rst,
+            tetromino_shape => tetromino_shape,
+            tetromino_position_x => tetromino_position_x,
+            tetromino_position_y => tetromino_position_y,
+            user_input => user_input_signals,
+            grid => grid,
+            score => game_score,
+            game_over => game_over_signal
+        );
+    
+    user_input_inst : user_input
+        Port Map (
+            clk => clk,
+            rst => rst,
+            buttons => (left, right, rotate),
+            left => left,
+            right => right,
+            rotate => rotate,
+            drop => drop
+        );
+    
+    display_inst : display
+        Port Map (
+            clk => clk,
+            rst => rst,
+            grid => grid,
+            tetromino_position_x => tetromino_position_x,
+            tetromino_position_y => tetromino_position_y,
+            tetromino_shape => tetromino_shape,
+            display_out => display_data
+        );
+    
+    scoring_inst : scoring
+        Port Map (
+            clk => clk,
+            rst => rst,
+            lines_cleared => lines_cleared,
+            score => game_score
+        );
+
+    -- Additional logic for game control and signal connections
+
+end Behavioral;
